@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>期末舒壓烤肉大會 - 報名戰況分析</title>
+    
+    <!-- 引入 Tailwind CSS (快速排版) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 Chart.js (圖表製作) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- 引入 Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- 引入 FontAwesome (圖示) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #1a1a1a;
+            color: #f3f4f6;
+            background-image: radial-gradient(#333 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .glass-card {
+            background: rgba(40, 40, 40, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            border-color: #f97316; /* Orange-500 */
+        }
+
+        /* 載入動畫 */
+        @keyframes fire {
+            0% { text-shadow: 0 0 20px #fefcc9, 10px -10px 30px #feec85, -20px -20px 40px #ffae34, 20px -40px 50px #ec760c, -20px -60px 60px #cd4606, 0 -80px 70px #973716, 10px -90px 80px #451b0e; }
+            100% { text-shadow: 0 0 20px #fefcc9, 10px -10px 30px #fefcc9, -20px -20px 40px #feec85, 22px -42px 50px #ffae34, -22px -58px 60px #ec760c, 0 -82px 70px #cd4606, 10px -90px 80px #973716; }
+        }
+
+        .title-fire {
+            animation: fire 1s ease-in-out infinite alternate;
+            color: #ffae34;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            transition: opacity 0.5s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-10">
+
+    <!-- Loading Screen -->
+    <div id="loading" class="loading-overlay">
+        <div class="text-center">
+            <i class="fa-solid fa-fire fa-bounce text-6xl text-orange-500 mb-4"></i>
+            <p class="text-xl text-gray-300">正在生火預熱中...<br><span class="text-sm text-gray-500">讀取資料庫</span></p>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="pt-10 pb-6 text-center px-4">
+        <h1 class="text-4xl md:text-5xl font-bold mb-2 tracking-wider title-fire">
+            <i class="fa-solid fa-drumstick-bite mr-2"></i> 期末舒壓烤肉大會
+        </h1>
+        <p class="text-gray-400 text-lg">2025 最強報名戰況儀表板</p>
+    </header>
+
+    <main class="container mx-auto px-4 max-w-6xl">
+        
+        <!-- 關鍵指標 (KPI Cards) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- 總報名人數 -->
+            <div class="glass-card p-6 flex items-center justify-between border-l-4 border-orange-500">
+                <div>
+                    <p class="text-gray-400 text-sm font-bold uppercase">目前報名總數</p>
+                    <h2 id="total-count" class="text-4xl font-bold text-white mt-1">0</h2>
+                </div>
+                <div class="bg-orange-500/20 p-4 rounded-full">
+                    <i class="fa-solid fa-users text-orange-500 text-2xl"></i>
+                </div>
+            </div>
+
+            <!-- 最多人的年級 -->
+            <div class="glass-card p-6 flex items-center justify-between border-l-4 border-yellow-500">
+                <div>
+                    <p class="text-gray-400 text-sm font-bold uppercase">主力參加年級</p>
+                    <h2 id="top-grade" class="text-2xl font-bold text-white mt-1">-</h2>
+                </div>
+                <div class="bg-yellow-500/20 p-4 rounded-full">
+                    <i class="fa-solid fa-crown text-yellow-500 text-2xl"></i>
+                </div>
+            </div>
+
+            <!-- 素食/特殊飲食比例 -->
+            <div class="glass-card p-6 flex items-center justify-between border-l-4 border-green-500">
+                <div>
+                    <p class="text-gray-400 text-sm font-bold uppercase">特殊飲食需求</p>
+                    <h2 id="special-diet-count" class="text-4xl font-bold text-white mt-1">0</h2>
+                </div>
+                <div class="bg-green-500/20 p-4 rounded-full">
+                    <i class="fa-solid fa-carrot text-green-500 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 圖表區 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            
+            <!-- 年級分佈 (Doughnut Chart) -->
+            <div class="glass-card p-6">
+                <h3 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
+                    <i class="fa-solid fa-school text-blue-400 mr-2"></i>各年級勢力範圍
+                </h3>
+                <div class="relative h-64 md:h-80 w-full flex justify-center">
+                    <canvas id="gradeChart"></canvas>
+                </div>
+                <p class="text-center text-sm text-gray-500 mt-4">看看是大幾的學長姐最愛吃肉？</p>
+            </div>
+
+            <!-- 飲食偏好 (Bar Chart) -->
+            <div class="glass-card p-6">
+                <h3 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
+                    <i class="fa-solid fa-utensils text-red-400 mr-2"></i>飲食偏好分析
+                </h3>
+                <div class="relative h-64 md:h-80 w-full">
+                    <canvas id="dietChart"></canvas>
+                </div>
+                <p class="text-center text-sm text-gray-500 mt-4">備料組請注意：這是採購的重要依據！</p>
+            </div>
+        </div>
+
+        <!-- 最新報名跑馬燈 & 備註文字雲概念 -->
+        <div class="glass-card p-6 mb-8">
+            <h3 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2">
+                <i class="fa-solid fa-comment-dots text-purple-400 mr-2"></i>最新留言與備註
+            </h3>
+            <div id="remarks-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-60 overflow-y-auto pr-2">
+                <!-- 備註會動態插入這裡 -->
+                <p class="text-gray-500 text-center col-span-2">尚無備註資料...</p>
+            </div>
+        </div>
+
+        <div class="text-center text-gray-600 text-sm">
+            <p>Data Source: Google Forms & Sheets API</p>
+            <p>Designed for the BBQ Party 2025</p>
+        </div>
+
+    </main>
+
+    <script>
+        // 設定您的 CSV 網址
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_RX7bodysq202ReHeYKNsrJPSu3LSyCEW88-AOUp0NNDEEieZPNrGymI16Ew2P27UIKuWzJwMuDu_/pub?output=csv';
+
+        // 初始化
+        window.onload = function() {
+            fetchData();
+        };
+
+        async function fetchData() {
+            try {
+                const response = await fetch(CSV_URL);
+                if (!response.ok) throw new Error("網路回應錯誤");
+                
+                const dataText = await response.text();
+                const rows = parseCSV(dataText);
+
+                // 資料處理
+                // Google Forms CSV 欄位順序 (假設依照您的 App Script 生成):
+                // 0: Timestamp (系統自動生成)
+                // 1: 姓名
+                // 2: 學號
+                // 3: Email
+                // 4: 年級 (單選)
+                // 5: 飲食習慣 (多選，逗號分隔)
+                // 6: 備註
+                
+                // 去除標題列 (Header)
+                const headers = rows[0]; 
+                const data = rows.slice(1).filter(row => row.length > 1); // 過濾空行
+
+                updateStats(data);
+                renderGradeChart(data);
+                renderDietChart(data);
+                renderRemarks(data);
+
+                // 關閉 Loading
+                setTimeout(() => {
+                    document.getElementById('loading').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('loading').style.display = 'none';
+                    }, 500);
+                }, 800);
+
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="text-red-500 text-center">
+                        <i class="fa-solid fa-circle-exclamation text-4xl mb-4"></i>
+                        <p>無法讀取資料，請檢查 Google Sheet 權限是否設為公開。</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 簡單的 CSV 解析器 (處理引號內的逗號)
+        function parseCSV(text) {
+            const rows = [];
+            let currentRow = [];
+            let currentCell = '';
+            let insideQuote = false;
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i + 1];
+
+                if (char === '"') {
+                    if (insideQuote && nextChar === '"') {
+                        currentCell += '"';
+                        i++; // Skip escape quote
+                    } else {
+                        insideQuote = !insideQuote;
+                    }
+                } else if (char === ',' && !insideQuote) {
+                    currentRow.push(currentCell.trim());
+                    currentCell = '';
+                } else if ((char === '\r' || char === '\n') && !insideQuote) {
+                    if (char === '\r' && nextChar === '\n') i++;
+                    if (currentCell || currentRow.length > 0) {
+                        currentRow.push(currentCell.trim());
+                        rows.push(currentRow);
+                    }
+                    currentRow = [];
+                    currentCell = '';
+                } else {
+                    currentCell += char;
+                }
+            }
+            if (currentCell || currentRow.length > 0) {
+                currentRow.push(currentCell.trim());
+                rows.push(currentRow);
+            }
+            return rows;
+        }
+
+        function updateStats(data) {
+            // 1. 總人數
+            animateValue("total-count", 0, data.length, 1500);
+
+            // 2. 計算各年級人數找出冠軍
+            const grades = {};
+            data.forEach(row => {
+                const grade = row[4] || '未知';
+                grades[grade] = (grades[grade] || 0) + 1;
+            });
+            const topGrade = Object.entries(grades).sort((a,b) => b[1] - a[1])[0];
+            document.getElementById('top-grade').innerText = topGrade ? topGrade[0] : '尚無資料';
+
+            // 3. 特殊飲食 (包含素食或不吃牛)
+            let specialCount = 0;
+            data.forEach(row => {
+                const diet = row[5] || '';
+                if (diet.includes('素食') || diet.includes('不吃牛')) {
+                    specialCount++;
+                }
+            });
+            animateValue("special-diet-count", 0, specialCount, 1500);
+        }
+
+        // 數字跑動動畫
+        function animateValue(id, start, end, duration) {
+            if (start === end) return;
+            const range = end - start;
+            let current = start;
+            const increment = end > start ? 1 : -1;
+            const stepTime = Math.abs(Math.floor(duration / range));
+            const obj = document.getElementById(id);
+            const timer = setInterval(function() {
+                current += increment;
+                obj.innerHTML = current;
+                if (current == end) {
+                    clearInterval(timer);
+                }
+            }, Math.max(stepTime, 30)); // 最快30ms跳一次
+        }
+
+        function renderGradeChart(data) {
+            const ctx = document.getElementById('gradeChart').getContext('2d');
+            const counts = { '大一': 0, '大二': 0, '大三': 0, '大四': 0 };
+            
+            data.forEach(row => {
+                const g = row[4];
+                if (counts[g] !== undefined) counts[g]++;
+                else {
+                    // 處理意外的年級輸入
+                    counts['其他'] = (counts['其他'] || 0) + 1;
+                }
+            });
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(counts),
+                    datasets: [{
+                        data: Object.values(counts),
+                        backgroundColor: [
+                            '#f97316', // Orange
+                            '#eab308', // Yellow
+                            '#ef4444', // Red
+                            '#a855f7', // Purple
+                            '#6b7280'  // Gray
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#ccc' } }
+                    }
+                }
+            });
+        }
+
+        function renderDietChart(data) {
+            const ctx = document.getElementById('dietChart').getContext('2d');
+            
+            // 飲食習慣是多選，格式可能是 "葷食, 不吃牛"
+            const dietCounts = { '葷食': 0, '素食': 0, '不吃牛': 0 };
+
+            data.forEach(row => {
+                const habits = row[5] ? row[5].split(',') : [];
+                habits.forEach(h => {
+                    const cleanH = h.trim();
+                    if (dietCounts[cleanH] !== undefined) {
+                        dietCounts[cleanH]++;
+                    }
+                });
+            });
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(dietCounts),
+                    datasets: [{
+                        label: '人數',
+                        data: Object.values(dietCounts),
+                        backgroundColor: [
+                            'rgba(249, 115, 22, 0.7)', // Orange
+                            'rgba(34, 197, 94, 0.7)',  // Green
+                            'rgba(239, 68, 68, 0.7)'   // Red
+                        ],
+                        borderColor: [
+                            '#f97316',
+                            '#22c55e',
+                            '#ef4444'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#ccc', stepSize: 1 }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#ccc' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function renderRemarks(data) {
+            const container = document.getElementById('remarks-container');
+            const remarks = data.filter(row => row[6] && row[6].trim() !== '').slice(-6).reverse(); // 取最後6筆有留言的
+
+            if (remarks.length === 0) return;
+
+            container.innerHTML = '';
+            remarks.forEach(row => {
+                const name = row[1] || '神秘客';
+                // 隱藏名字中間字，保護隱私
+                const maskedName = name.length > 2 
+                    ? name[0] + '*'.repeat(name.length-2) + name[name.length-1]
+                    : name[0] + '*';
+                
+                const content = row[6];
+                
+                const card = document.createElement('div');
+                card.className = 'bg-gray-800/50 p-3 rounded border border-gray-700 hover:bg-gray-700/50 transition';
+                card.innerHTML = `
+                    <div class="flex items-center mb-1">
+                        <div class="w-2 h-2 rounded-full bg-orange-500 mr-2"></div>
+                        <span class="text-xs text-orange-400 font-bold">${maskedName}</span>
+                    </div>
+                    <p class="text-sm text-gray-300 text-ellipsis overflow-hidden">"${content}"</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
